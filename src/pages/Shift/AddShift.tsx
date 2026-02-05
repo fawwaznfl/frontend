@@ -5,16 +5,24 @@ import ComponentCard from "../../components/common/ComponentCard";
 import api from "../../api/axios";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
+import { LocalizationProvider, StaticTimePicker } from "@mui/x-date-pickers";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 
 export default function AddShift() {
   const navigate = useNavigate();
 
   const [nama, setNama] = useState("");
-  const [jamMasuk, setJamMasuk] = useState("");
-  const [jamPulang, setJamPulang] = useState("");
+  const [jamMasuk, setJamMasuk] = useState<any>(null);
+  const [jamPulang, setJamPulang] = useState<any>(null);
   const [companyId, setCompanyId] = useState("");
   const [companies, setCompanies] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showJamMasuk, setShowJamMasuk] = useState(false);
+  const [showJamPulang, setShowJamPulang] = useState(false);
+  const [viewMasuk, setViewMasuk] = useState<"hours" | "minutes">("hours");
+  const [viewPulang, setViewPulang] = useState<"hours" | "minutes">("hours");
+
+
 
   // Ambil role dan company user
   const dashboardType = localStorage.getItem("dashboard_type");
@@ -78,8 +86,8 @@ export default function AddShift() {
         "/shifts",
         {
           nama,
-          jam_masuk: jamMasuk,
-          jam_pulang: jamPulang,
+          jam_masuk: jamMasuk.format("HH:mm"),
+          jam_pulang: jamPulang.format("HH:mm"),
           company_id: companyId,
         },
         {
@@ -97,6 +105,7 @@ export default function AddShift() {
 
   // USER INTERFACE
   return (
+  <LocalizationProvider dateAdapter={AdapterDayjs}>
     <>
       <PageMeta title="Tambah Shift" description="Tambah Shift Baru" />
       <PageHeader
@@ -110,47 +119,8 @@ export default function AddShift() {
             <p className="text-gray-700 dark:text-gray-300">Loading...</p>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-5">
-              {/* Nama Shift */}
-              <div className="flex flex-col">
-                <label className="text-sm font-medium mb-1 dark:text-white">
-                  Nama Shift
-                </label>
-                <input
-                  type="text"
-                  placeholder="Masukkan nama shift"
-                  value={nama}
-                  onChange={(e) => setNama(e.target.value)}
-                  className="border px-3 py-2 rounded-lg dark:bg-gray-700 dark:text-white"
-                />
-              </div>
 
-              {/* Jam Masuk */}
-              <div className="flex flex-col">
-                <label className="text-sm font-medium mb-1 dark:text-white">
-                  Jam Masuk
-                </label>
-                <input
-                  type="time"
-                  value={jamMasuk}
-                  onChange={(e) => setJamMasuk(e.target.value)}
-                  className="border px-3 py-2 rounded-lg dark:bg-gray-700 dark:text-white"
-                />
-              </div>
-
-              {/* Jam Pulang */}
-              <div className="flex flex-col">
-                <label className="text-sm font-medium mb-1 dark:text-white">
-                  Jam Pulang
-                </label>
-                <input
-                  type="time"
-                  value={jamPulang}
-                  onChange={(e) => setJamPulang(e.target.value)}
-                  className="border px-3 py-2 rounded-lg dark:bg-gray-700 dark:text-white"
-                />
-              </div>
-
-              {/* Company (hanya superadmin) */}
+              {/* Company */}
               {dashboardType === "superadmin" && (
                 <div className="flex flex-col">
                   <label className="text-sm font-medium mb-1 dark:text-white">
@@ -170,6 +140,110 @@ export default function AddShift() {
                   </select>
                 </div>
               )}
+              
+              {/* Nama Shift */}
+              <div className="flex flex-col">
+                <label className="text-sm font-medium mb-1 dark:text-white">
+                  Nama Shift
+                </label>
+                <input
+                  type="text"
+                  placeholder="Masukkan nama shift"
+                  value={nama}
+                  onChange={(e) => setNama(e.target.value)}
+                  className="border px-3 py-2 rounded-lg dark:bg-gray-700 dark:text-white"
+                />
+              </div>
+
+            {/* Jam Masuk */}
+            <div className="flex flex-col gap-2 relative">
+              <label className="text-sm font-medium dark:text-white">
+                Jam Masuk
+              </label>
+              <input
+                type="text"
+                readOnly
+                placeholder="Pilih jam masuk"
+                value={jamMasuk ? jamMasuk.format("HH:mm") : ""}
+                onClick={() => setShowJamMasuk(true)}
+                className="border px-3 py-2 rounded-xl cursor-pointer
+                          dark:bg-gray-700 dark:text-white"
+              />
+              {showJamMasuk && (
+                <div className="absolute z-50 mt-1 bg-white dark:bg-gray-700
+                                border rounded-xl p-3 shadow-lg">
+                  <StaticTimePicker
+                    value={jamMasuk}
+                    openTo="hours"
+                    views={["hours", "minutes"]}
+                    view={viewMasuk}
+                    onViewChange={(newView) => {
+                      if (newView === "hours" || newView === "minutes") {
+                        setViewMasuk(newView);
+                      }
+                    }}
+                    onChange={(newValue) => {
+                      setJamMasuk(newValue);
+
+                      if (viewMasuk === "hours") {
+                        setViewMasuk("minutes");
+                      } else {
+                        setShowJamMasuk(false);
+                        setViewMasuk("hours");
+                      }
+                    }}
+                    ampm={false}
+                    minutesStep={5}
+                    displayStaticWrapperAs="desktop"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Jam Pulang */}
+            <div className="flex flex-col gap-2 relative">
+              <label className="text-sm font-medium dark:text-white">
+                Jam Pulang
+              </label>
+              <input
+                type="text"
+                readOnly
+                placeholder="Pilih Jam Pulang"
+                value={jamPulang ? jamPulang.format("HH:mm") : ""}
+                onClick={() => setShowJamPulang(true)}
+                className="border px-3 py-2 rounded-xl cursor-pointer
+                          dark:bg-gray-700 dark:text-white"
+              />
+              {showJamPulang&& (
+                <div className="absolute z-50 mt-1 bg-white dark:bg-gray-700
+                                border rounded-xl p-3 shadow-lg">
+                  <StaticTimePicker
+                    value={jamPulang}
+                    openTo="hours"
+                    views={["hours", "minutes"]}
+                    view={viewPulang}
+                    onViewChange={(newView) => {
+                      if (newView === "hours" || newView === "minutes") {
+                        setViewPulang(newView);
+                      }
+                    }}
+                    onChange={(newValue) => {
+                      setJamPulang(newValue);
+
+                      if (viewPulang === "hours") {
+                        setViewPulang("minutes");
+                      } else {
+                        setShowJamPulang(false);
+                        setViewPulang("hours");
+                      }
+                    }}
+                    ampm={false}
+                    minutesStep={5}
+                    displayStaticWrapperAs="desktop"
+                  />
+                </div>
+              )}
+            </div>
 
               {/* Buttons */}
               <div className="flex gap-3 pt-3">
@@ -188,10 +262,13 @@ export default function AddShift() {
                   Batal
                 </button>
               </div>
+
             </form>
           )}
         </ComponentCard>
       </div>
     </>
-  );
+  </LocalizationProvider>
+);
+
 }

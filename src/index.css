@@ -842,3 +842,16 @@ span.flatpickr-weekday,
   color: #2563eb !important; /* blue-600 */
   font-weight: 700;
 }
+
+.MuiPickersLayout-root {
+  border-radius: 16px;
+}
+
+.MuiPickersClockPointer-pointer,
+.MuiPickersClock-pin {
+  background-color: #2563eb; /* blue-600 */
+}
+
+.MuiPickersClockPointer-thumb {
+  border-color: #2563eb;
+}

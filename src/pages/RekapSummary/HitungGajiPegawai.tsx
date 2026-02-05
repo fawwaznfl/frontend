@@ -12,6 +12,17 @@ import BarValue from "../../components/Payroll/BarValue";
 import DualBarValue from "../../components/Payroll/DualBarValue";
 import BonusBars from "../../components/Payroll/BonusBars";
 
+const getTerlambatSuffix = (satuan?: string) => {
+  switch (satuan) {
+    case "menit":
+      return "/ Menit";
+    case "jam":
+      return "/ Jam";
+    default:
+      return "/ Hari";
+  }
+};
+
 
 const formatRupiah = (value: number | string) => {
   if (!value) return "";
@@ -124,7 +135,7 @@ interface GajiForm {
   tunjangan_hari_raya: number;
   thr: number;
   thr_count: number;
-
+  terlambat_satuan?: "hari" | "jam" | "menit";
   bonus_pribadi: number;
   bonus_team: number;
   bonus_jackpot: number;
@@ -253,6 +264,7 @@ export default function HitungGajiPegawai() {
     thr: 0,
     thr_count: 0,
     loss: 0,
+    terlambat_satuan: "hari",
     
     
   });
@@ -299,7 +311,7 @@ export default function HitungGajiPegawai() {
       terlambat: Number(d.terlambat) || 0,
       kehadiran_count: Number(d.kehadiran_count) || 0,
       kehadiran: Number(d.kehadiran) || 0,
-      saldo_kasbon_count: Number(d.saldo_kasbon_count) || 0,
+      saldo_kasbon_count: Number(d.bayar_kasbon_periode) || 0,
       saldo_kasbon: Number(d.saldo_kasbon) || 0,
       tunjangan_bpjs_kesehatan_count: Number(d.tunjangan_bpjs_kesehatan_count) || 0,
       tunjangan_bpjs_kesehatan: Number(d.tunjangan_bpjs_kesehatan) || 0,
@@ -313,6 +325,7 @@ export default function HitungGajiPegawai() {
       potongan_bpjs_ketenagakerjaan: Number(d.potongan_bpjs_ketenagakerjaan) || 0,
       thr: Number(d.thr) || 0,
       thr_count: Number(d.thr_count) || 0,
+      terlambat_satuan: d.terlambat_satuan || "hari",
 
 
       persentase_kehadiran: persentaseParam
@@ -609,9 +622,9 @@ export default function HitungGajiPegawai() {
             <DualBarValue
               title="Terlambat"
               count={form.terlambat_count}
-              countSuffix="/ Kali"
+              countSuffix={getTerlambatSuffix(form.terlambat_satuan)}
               amount={form.terlambat}
-              amountLabel="Uang Terlambat"
+              amountLabel={`Uang Terlambat / ${form.terlambat_satuan ?? "hari"}`}
               onCountChange={(val) =>
                 setForm((prev) => ({ ...prev, terlambat_count: val }))
               }
@@ -619,6 +632,7 @@ export default function HitungGajiPegawai() {
                 setForm((prev) => ({ ...prev, terlambat: val }))
               }
             />
+
         </div>
 
         <div className="rounded-2xl border bg-white p-5 shadow-sm">
@@ -647,7 +661,7 @@ export default function HitungGajiPegawai() {
             onBottomChange={(val) => {
               setForm((prev) => ({
                 ...prev,
-                saldo_kasbon_count: val,
+                saldo_kasbon_count: Math.min(val, prev.saldo_kasbon_count), 
               }));
             }}
           />

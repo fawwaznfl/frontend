@@ -4,7 +4,6 @@ import SignUp from "./pages/AuthPages/SignUp";
 import ForgotPassword from "./pages/AuthPages/ForgotPassword";
 import NotFound from "./pages/OtherPage/NotFound";
 import Home from "./pages/Dashboard/Home";
-import UserProfiles from "./pages/ProfilePage";
 import Calendar from "./pages/Calendar";
 import Blank from "./pages/Blank";
 import FormElements from "./pages/Forms/FormElements";

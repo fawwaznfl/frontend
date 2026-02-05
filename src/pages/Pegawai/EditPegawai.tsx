@@ -61,21 +61,20 @@ interface PegawaiForm {
   bonus_pribadi: string;
   bonus_team: string;
   bonus_jackpot: string;
+  kasbon_periode: "bulan" | "tahun";
+  terlambat_satuan: "hari" | "jam" | "menit";
+
   
 }
 
 export default function EditPegawai() {
   const { id } = useParams();
   const navigate = useNavigate();
-
   const rawUser = localStorage.getItem("user");
   const user = rawUser ? JSON.parse(rawUser) : null;
 
-  const [isDataReady, setIsDataReady] = useState(false);
-
   const [fotoPreview, setFotoPreview] = useState<string | null>(null);
   const [fotoFile, setFotoFile] = useState<File | null>(null);
-
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -83,7 +82,17 @@ export default function EditPegawai() {
   const [lokasis, setLokasis] = useState<any[]>([]);
   const [roles, setRoles] = useState<any[]>([]);
   const [divisis, setDivisis] = useState<any[]>([]);
+  const isSuperadmin = user?.dashboard_type === "superadmin";
+  const isAdmin = user?.dashboard_type === "admin";
 
+  const [periodeGaji, setPeriodeGaji] = useState<"hari" | "bulan">("bulan");
+  const satuanText = periodeGaji === "hari" ? "/hari" : "/bulan";
+  type SatuanGaji = "bulan" | "hari" | "jam" | "menit";
+
+  const [satuanGaji, setSatuanGaji] = useState<SatuanGaji>("bulan");
+  const satuanLabel = "/" + satuanGaji;
+  type SatuanKasbon = "bulan" | "tahun";
+  const [satuanKasbon, setSatuanKasbon] = useState<SatuanKasbon>("bulan");
 
   const [formData, setFormData] = useState<PegawaiForm>({
     name: "",
@@ -100,6 +109,7 @@ export default function EditPegawai() {
     status: "",
     company_id: null,
     tgl_join: "",
+    kasbon_periode: "bulan",
     status_nikah: "", 
     status_pajak: "",
     ktp: "",
@@ -136,11 +146,10 @@ export default function EditPegawai() {
     bonus_pribadi: "",
     bonus_team: "",
     bonus_jackpot: "",
+    terlambat_satuan: "hari",
   });
 
-  // =======================
   // FETCH COMPANY / LOKASI / ROLE
-  // =======================
   const fetchCompanies = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -151,11 +160,10 @@ export default function EditPegawai() {
     } catch (err) {}
   };
 
-  const fetchLokasis = async () => {
+  const fetchLokasis = async (company_id?: number) => {
     try {
       const token = localStorage.getItem("token");
 
-      // Jika ADMIN -> lokasi hanya dari company admin
       if (user?.dashboard_type === "admin") {
         const res = await api.get(`/lokasis?company_id=${user.company_id}`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -165,21 +173,27 @@ export default function EditPegawai() {
         return;
       }
 
-      // Jika SUPERADMIN -> ambil semua lokasi
-      const res = await api.get("/lokasis", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      if (company_id) {
+        const res = await api.get(`/lokasis?company_id=${company_id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
-      setLokasis(res.data.data || res.data);
-    } catch (err) {}
+        setLokasis(res.data.data || res.data);
+        return;
+      }
+
+      setLokasis([]);
+
+    } catch (err) {
+      console.log(err);
+    }
   };
-
 
   const fetchRoles = async (company_id?: number) => {
     try {
       const token = localStorage.getItem("token");
 
-      // ADMIN → pakai company user
+      // KALAU ADMIN DI AMBIL BERDASARKAN COMPANY USER
       if (user?.dashboard_type === "admin") {
         const res = await api.get(`/roles?company_id=${user.company_id}`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -189,7 +203,7 @@ export default function EditPegawai() {
         return;
       }
 
-      // SUPERADMIN → pakai company pegawai yang sedang di-edit
+      // KALAU SUPERADMIN DI AMBIL BERDASARKAN USER YANG LOGIN 
       if (company_id) {
         const res = await api.get(`/roles?company_id=${company_id}`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -199,7 +213,6 @@ export default function EditPegawai() {
         return;
       }
 
-      // fallback
       const res = await api.get(`/roles`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -214,7 +227,6 @@ export default function EditPegawai() {
     try {
       const token = localStorage.getItem("token");
 
-      // ADMIN
       if (user?.dashboard_type === "admin") {
         const res = await api.get(`/divisis?company_id=${user.company_id}`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -223,7 +235,6 @@ export default function EditPegawai() {
         return;
       }
 
-      // SUPERADMIN + company pegawai yg dipilih
       if (company_id) {
         const res = await api.get(`/divisis?company_id=${company_id}`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -232,7 +243,6 @@ export default function EditPegawai() {
         return;
       }
 
-      // fallback
       const res = await api.get("/divisis", {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -242,16 +252,6 @@ export default function EditPegawai() {
     } catch (err) {}
   };
 
-    useEffect(() => {
-    if (!loading && roles.length > 0 && divisis.length > 0) {
-      setIsDataReady(true);
-    }
-  }, [loading, roles, divisis]);
-
-
-  // =======================
-  // ON CHANGE INPUT
-  // =======================
   const handleChange = (e: any) => {
     const { name, value } = e.target;
 
@@ -288,10 +288,10 @@ export default function EditPegawai() {
 
       const data = res.data;
 
-      // Jika SUPERADMIN → fetch roles & divisi harus berdasarkan company pegawai
       if (data.company_id) {
         await fetchRoles(data.company_id);
         await fetchDivisis(data.company_id);
+        await fetchLokasis(data.company_id);
       }
 
       // SET FORM DATA
@@ -312,6 +312,7 @@ export default function EditPegawai() {
         tgl_join: data.tgl_join ?? "",
         status_nikah: data.status_nikah ?? "",
         status_pajak: data.status_pajak ?? "",
+        kasbon_periode: data.kasbon_periode ?? "bulan",
         ktp: data.ktp ?? "",
         mangkir: data.mangkir ?? "",
         tunjangan_bpjs_kesehatan: data.tunjangan_bpjs_kesehatan ?? "",
@@ -346,15 +347,13 @@ export default function EditPegawai() {
         bonus_pribadi: data.bonus_pribadi ?? "",
         bonus_team: data.bonus_team ?? "",
         bonus_jackpot: data.bonus_jackpot ?? "",
+        terlambat_satuan: data.terlambat_satuan ?? "hari",
       });
 
       // FOTO PREVIEW
       if (data.foto_karyawan) {
         setFotoPreview(`${import.meta.env.VITE_STORAGE_URL}/${data.foto_karyawan}`);
       }
-
-      // Setelah semua siap → render form
-      setIsDataReady(true);
 
     } catch (err) {
       Swal.fire("Error", "Gagal memuat data pegawai", "error");
@@ -363,7 +362,10 @@ export default function EditPegawai() {
     }
   };
 
-
+  useEffect(() => {
+    fetchCompanies();
+    fetchDetail();
+  }, []);
 
     const formatRupiah = (value: string) => {
     const numberString = value.replace(/\D/g, "");
@@ -372,7 +374,7 @@ export default function EditPegawai() {
       currency: "IDR",
     }).format(Number(numberString));
 
-    return formatted.replace(",00", ""); // biar tanpa koma
+    return formatted.replace(",00", ""); 
   };
 
   const handleGajiPokokChange = (e: any) => {
@@ -518,10 +520,7 @@ export default function EditPegawai() {
   }));
 };
 
-
-  // =======================
   // SUBMIT FORM
-  // =======================
   const handleSubmit = async (e: any) => {
     e.preventDefault();
     setSaving(true);
@@ -531,10 +530,11 @@ export default function EditPegawai() {
       const body = new FormData();
 
       Object.entries(formData).forEach(([key, value]) => {
-        if (value !== null && value !== "") {
+        if (value !== null) {
           body.append(key, String(value));
         }
       });
+
 
       if (fotoFile) {
         body.append("foto_karyawan", fotoFile);
@@ -565,21 +565,19 @@ export default function EditPegawai() {
     }
   };
 
-  // INIT LOAD
-
   useEffect(() => {
-  fetchCompanies();
-  fetchLokasis();
-  fetchDetail(); // terakhir karena paling penting
-}, []);
-
-
-  useEffect(() => {
-    if (formData.company_id) {
-      fetchRoles(formData.company_id);
-      fetchDivisis(formData.company_id);
+    if (!formData.company_id) {
+      setLokasis([]);
+      setFormData((prev) => ({ ...prev, lokasi_id: null }));
+      return;
     }
+
+    fetchRoles(formData.company_id);
+    fetchDivisis(formData.company_id);
+    fetchLokasis(formData.company_id);
+
   }, [formData.company_id]);
+
 
   const handleSelectChange = (name: string, value: string) => {
     setFormData((prev) => ({
@@ -594,9 +592,8 @@ export default function EditPegawai() {
   if (roles.length > 0 && formData.role_id !== null) {
     const exist = roles.some((r) => r.id == formData.role_id);
 
-    if (!exist) return; // kalau role ID tidak ada di list, jangan apa²
+    if (!exist) return; 
 
-    // Set Ulang (baru React mau render)
     setFormData((prev) => ({
       ...prev,
       role_id: Number(prev.role_id),
@@ -604,15 +601,10 @@ export default function EditPegawai() {
   }
 }, [roles]);
 
-
-
-  // =======================
   // User interface
-  // =======================
   return (
     <>
       <PageMeta title="Edit Pegawai" description="Form edit data pegawai" />
-
       <PageHeader
         pageTitle="Edit Pegawai"
         titleClass="text-[32px] dark:text-white"
@@ -646,8 +638,8 @@ export default function EditPegawai() {
                 <div>
                   <Label>Foto Pegawai</Label>
                   <label
-                    className="mt-1 flex flex-col items-center justify-center w-full h-10 border-2 border-dashed rounded-xl cursor-pointer
-                      bg-gray-50 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700
+                    className="mt-1 flex flex-col items-center justify-center w-full h-10 border-2 border-dashed 
+                      rounded-xl cursor-pointer bg-gray-50 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700
                       border-gray-300 dark:border-gray-600 transition"
                   >
                     {fotoPreview ? (
@@ -709,35 +701,47 @@ export default function EditPegawai() {
                   <Label>Gender</Label>
                   <Select
                     options={[
-                      { value: "Laki-laki", label: "Laki-laki" },
-                      { value: "Perempuan", label: "Perempuan" },
+                      { value: "laki_laki", label: "Laki-laki" },
+                      { value: "perempuan", label: "Perempuan" },
                     ]}
-                    className="w-full px-3 py-2 rounded-xl border dark:bg-gray-800 dark:border-gray-600 dark:text-white"
                     value={formData.gender ?? ""}
-                    onChange={(val: string) =>
-                      setFormData((prev) => ({ ...prev, gender: val }))
-                    }
+                    onChange={(val: string) => handleSelectChange("gender", val)}
                   />
                 </div>
 
-                {user?.dashboard_type === "superadmin" && (
                   <div>
-                    <Label>Perusahaan</Label>
-                    <select
-                      name="company_id"
-                      value={formData.company_id ?? ""}
-                      onChange={handleChange}
-                      className="w-full px-3 py-2 rounded-xl border dark:bg-gray-800 dark:border-gray-600 dark:text-white"
-                    >
-                      <option value="">Pilih Perusahaan</option>
-                      {companies.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
+                  <Label>Perusahaan</Label>
+
+                  <select
+                    name="company_id"
+                    value={formData.company_id ?? ""}
+                    onChange={handleChange}
+                    disabled={isAdmin}
+                    className={`
+                      w-full px-3 py-2 rounded-xl border
+                      dark:bg-gray-800 dark:border-gray-600 dark:text-white
+                      ${isAdmin ? "bg-gray-100 text-gray-500 cursor-not-allowed" : ""}
+                    `}
+                  >
+                    <option value="">
+                      {isAdmin
+                        ? "Company -"
+                        : "Pilih Perusahaan"}
+                    </option>
+
+                    {companies.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+
+                  {isAdmin && formData.company_id && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Company ditentukan oleh Superadmin
+                    </p>
+                  )}
+                </div>
 
                 <div>
                   <Label>Role</Label>
@@ -756,19 +760,28 @@ export default function EditPegawai() {
 
                 <div>
                   <Label>Lokasi Kantor</Label>
-                  <select
+                 <select
                     name="lokasi_id"
                     value={formData.lokasi_id ?? ""}
                     onChange={handleChange}
-                    className="w-full px-3 py-2 rounded-xl border dark:bg-gray-800 dark:border-gray-600 dark:text-white"
+                    disabled={user?.dashboard_type === "superadmin" && !formData.company_id}
+                    className="w-full px-3 py-2 rounded-xl border
+                      disabled:bg-gray-100 disabled:text-gray-400
+                      dark:bg-gray-800 dark:border-gray-600 dark:text-white"
                   >
-                    <option value="">Pilih Lokasi</option>
+                    <option value="">
+                      {user?.dashboard_type === "superadmin" && !formData.company_id
+                        ? "Pilih perusahaan dulu"
+                        : "Pilih Lokasi"}
+                    </option>
+
                     {lokasis.map((l) => (
                       <option key={l.id} value={l.id}>
                         {l.nama_lokasi}
                       </option>
                     ))}
                   </select>
+
                 </div>
                 <div>
                   <Label>Tanggal Masuk Perusahaan</Label>
@@ -790,14 +803,10 @@ export default function EditPegawai() {
                     className="w-full px-3 py-2 rounded-xl border dark:bg-gray-800 dark:border-gray-600 dark:text-white"
                   >
                     <option value="">Pilih Status Nikah</option>
-                    <option value="TK/0">TK/0</option>
-                    <option value="TK/1">TK/1</option>
-                    <option value="TK/2">TK/2</option>
-                    <option value="TK/3">TK/3</option>
-                    <option value="K0">K0</option>
-                    <option value="K1">K1</option>
-                    <option value="K2">K2</option>
-                    <option value="K3">K3</option>
+                    <option value="menikah">Menikah</option>
+                    <option value="belum_menikah">Belum Menikah</option>
+                    <option value="janda">Janda</option>
+                    <option value="duda">Duda</option>
                   </select>
                 </div>
 
@@ -1054,36 +1063,56 @@ export default function EditPegawai() {
 
             {/* ================= PENJUMLAHAN GAJI ================= */}
             <ComponentCard 
-            title="Penjumlahan Gaji"
+            title={
+              <div className="flex items-center gap-3">
+                <span className="text-xl font-bold text-black">
+                  Penjumlahan Gaji
+                </span>
+
+                <select
+                    value={periodeGaji}
+                    onChange={(e) => setPeriodeGaji(e.target.value as "hari" | "bulan")}
+                    className="
+                      rounded-lg border border-gray-300 px-2 py-1 text-sm
+                      dark:border-gray-700 dark:bg-gray-900
+                    "
+                  >
+                    <option value="bulan">Per Bulan</option>
+                    <option value="hari">Per Hari</option>
+                  </select>
+              </div>
+            }
             titleClass="text-xl font-bold text-blue-600">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
+               {/* Gaji Pokok */}
                 <div>
                   <Label>Gaji Pokok</Label>
                   <div className="relative">
                     <Input
                       name="gaji_pokok"
-                      value={"Rp. " + (formData.gaji_pokok)}  
+                      value={"Rp. " + formData.gaji_pokok}
                       onChange={handleGajiPokokChange}
-                      className="pr-20"  
+                      className="pr-20"
                     />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 text-sm">
-                      /bulan
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">
+                      {satuanText}
                     </span>
                   </div>
                 </div>
 
+                {/* Makan & Transport */}
                 <div>
                   <Label>Makan & Transport</Label>
                   <div className="relative">
                     <Input
                       name="makan_transport"
-                      value={"Rp. " + (formData.makan_transport)} 
+                      value={"Rp. " + formData.makan_transport}
                       onChange={handleMakanTransportChange}
-                      className="pr-20"  
+                      className="pr-20"
                     />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 text-sm">
-                      /bulan
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">
+                      {satuanText}
                     </span>
                   </div>
                 </div>
@@ -1113,7 +1142,7 @@ export default function EditPegawai() {
                       className="pr-20"  
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 text-sm">
-                      /Bulan
+                      {satuanText}
                     </span>
                   </div>
                 </div>
@@ -1128,7 +1157,7 @@ export default function EditPegawai() {
                       className="pr-20"  
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 text-sm">
-                      /Bulan
+                      /Tahun
                     </span>
                   </div>
                 </div>
@@ -1137,13 +1166,13 @@ export default function EditPegawai() {
                   <Label>Bonus Pribadi</Label>
                   <div className="relative">
                     <Input
-                      name="bonus pribadi"
+                      name="bonus_pribadi" 
                       value={"Rp. " + (formData.bonus_pribadi)}
                       onChange={handleBonusPribadiChange}
                       className="pr-20"  
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 text-sm">
-                      /Bulan
+                      {satuanText}
                     </span>
                   </div>
                 </div>
@@ -1152,13 +1181,13 @@ export default function EditPegawai() {
                   <Label>Bonus Team</Label>
                   <div className="relative">
                     <Input
-                      name="bonus team"
+                      name="bonus_team"
                       value={"Rp. " + (formData.bonus_team)}
                       onChange={handleBonusTeamChange}
                       className="pr-20"  
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 text-sm">
-                      /Bulan
+                      {satuanText}
                     </span>
                   </div>
                 </div>
@@ -1167,13 +1196,13 @@ export default function EditPegawai() {
                   <Label>Bonus Jackpot</Label>
                   <div className="relative">
                     <Input
-                      name="bonus jacpot"
+                      name="bonus_jackpot" 
                       value={"Rp. " + (formData.bonus_jackpot)}
                       onChange={handleBonusJackpotChange}
                       className="pr-20"  
                     />
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 text-sm">
-                      /Bulan
+                      {satuanText}
                     </span>
                   </div>
                 </div>
@@ -1211,9 +1240,20 @@ export default function EditPegawai() {
                       onChange={handleTerlambatChange}
                       className="pr-20"  
                     />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 text-sm">
-                      /hari
-                    </span>
+                    <select
+                      value={formData.terlambat_satuan}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          terlambat_satuan: e.target.value as "hari" | "jam" | "menit",
+                        }))
+                      }
+                      className="absolute right-2 top-1/2 -translate-y-1/2 bg-transparent text-gray-500 text-sm"
+                    >
+                      <option value="hari">/hari</option>
+                      <option value="jam">/jam</option>
+                      <option value="menit">/menit</option>
+                    </select>
                   </div>
                 </div>
 
@@ -1241,9 +1281,19 @@ export default function EditPegawai() {
                       onChange={handleSaldoKasbonChange}
                       className="pr-20"  
                     />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400 text-sm">
-                      /tahun
-                    </span>
+                    <select
+                      value={formData.kasbon_periode}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          kasbon_periode: e.target.value as "bulan" | "tahun",
+                        }))
+                      }
+                      className="absolute right-2 top-1/2 -translate-y-1/2 bg-transparent text-gray-500 text-sm"
+                    >
+                      <option value="bulan">/bulan</option>
+                      <option value="tahun">/tahun</option>
+                    </select>
                   </div>
                 </div>
 
@@ -1328,7 +1378,6 @@ export default function EditPegawai() {
                 {saving ? "Menyimpan..." : "Simpan Perubahan"}
               </button>
             </div>
-
           </form>
         )}
       </div>

@@ -1,13 +1,20 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChevronLeft } from "lucide-react";
 import Swal from "sweetalert2";
 import api from "../../../api/axios";
 import BottomNav from "../../../components/common/BottomNav";
 import { useNavigate } from "react-router-dom";
 
+
 export default function AddKasbonPegawai() {
   const navigate = useNavigate();
   const user = JSON.parse(localStorage.getItem("user") || "{}");
+
+  const [limitKasbon, setLimitKasbon] = useState<{
+    limit: number;
+    terpakai: number;
+    sisa: number;
+  } | null>(null);
 
   const [form, setForm] = useState({
     pegawai_id: user.id ? String(user.id) : "",
@@ -93,6 +100,27 @@ export default function AddKasbonPegawai() {
       : "";
   };
 
+  const fetchSisaKasbon = async () => {
+    try {
+      const res = await api.get("/kasbon/sisa");
+
+      if (res.data) {
+        setLimitKasbon({
+          limit: res.data.limit,
+          terpakai: res.data.terpakai,
+          sisa: res.data.sisa,
+        });
+      }
+    } catch (err) {
+      console.log("Gagal ambil sisa kasbon", err);
+      setLimitKasbon(null);
+    }
+  };
+
+
+  useEffect(() => {
+    fetchSisaKasbon();
+  }, []);
 
   // USER INTERFACE
 
@@ -100,9 +128,13 @@ export default function AddKasbonPegawai() {
     <div className="min-h-screen bg-white">
       {/* HEADER */}
       <div className="relative bg-gradient-to-r from-indigo-600 to-indigo-400 text-white py-6 text-center rounded-b-3xl">
-        <button className="absolute left-4 top-6">
+        <button
+          className="absolute left-4 top-6"
+          onClick={() => navigate("/kasbon-pegawai")}
+        >
           <ChevronLeft size={28} />
         </button>
+
         <h1 className="text-lg font-semibold">Tambah Data Kasbon</h1>
       </div>
 
@@ -135,6 +167,19 @@ export default function AddKasbonPegawai() {
             className="w-full mt-1 mb-5 p-3 border rounded-xl"
             placeholder="Masukan Nominal"
           />
+
+          {limitKasbon && (
+            <div className="mb-4 p-3 rounded-xl bg-blue-50 text-sm text-blue-700">
+              Saldo kamu Sisa:{" "}
+              <b
+                className={
+                  limitKasbon.sisa <= 0 ? "text-red-600" : "text-green-700"
+                }
+              >
+                Rp {limitKasbon.sisa.toLocaleString("id-ID")}
+              </b>
+            </div>
+          )}
 
 
           {/* METODE PENGIRIMAN */}

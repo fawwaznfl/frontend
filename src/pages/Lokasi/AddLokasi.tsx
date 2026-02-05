@@ -87,6 +87,48 @@ export default function AddLokasi() {
     }
   };
 
+  const handleGetLocation = () => {
+    if (!navigator.geolocation) {
+      Swal.fire("Error", "Browser tidak mendukung GPS", "error");
+      return;
+    }
+
+    Swal.fire({
+      title: "Mengambil lokasi...",
+      text: "Pastikan GPS aktif",
+      allowOutsideClick: false,
+      didOpen: () => Swal.showLoading(),
+    });
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+
+        setForm((prev) => ({
+          ...prev,
+          lat_kantor: latitude.toString(),
+          long_kantor: longitude.toString(),
+        }));
+
+        Swal.fire("Berhasil", "Lokasi berhasil diambil", "success");
+      },
+      (error) => {
+        let message = "Gagal mengambil lokasi";
+
+        if (error.code === 1) message = "Izin lokasi ditolak";
+        if (error.code === 2) message = "Lokasi tidak tersedia";
+        if (error.code === 3) message = "Request lokasi timeout";
+
+        Swal.fire("Error", message, "error");
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+      }
+    );
+  };
+
+
   return (
     <>
       <PageMeta title="Tambah Lokasi" description="Tambah lokasi kantor" />
@@ -139,7 +181,7 @@ export default function AddLokasi() {
             />
           </div>
 
-          <div className="text-gray-700 dark:text-gray-200">
+          <div className="text-gray-700 dark:text-gray-200 space-y-3">
             {/* Latitude */}
             <div>
               <label className="block font-semibold mb-1">Latitude</label>
@@ -165,7 +207,17 @@ export default function AddLokasi() {
                 required
               />
             </div>
+
+            {/* Button Ambil Lokasi */}
+            <button
+              type="button"
+              onClick={handleGetLocation}
+              className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-lg"
+            >e
+               Ambil Lokasi Otomatis
+            </button>
           </div>
+
 
           {/* Radius */}
           <div>

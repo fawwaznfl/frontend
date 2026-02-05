@@ -4,6 +4,7 @@ import PageHeader from "../PageHeader";
 import ComponentCard from "../components/common/ComponentCard";
 import api from "../api/axios";
 import Swal from "sweetalert2";
+import { Navigate, useNavigate } from "react-router";
 
 interface ProfileData {
   id: number;
@@ -64,6 +65,7 @@ export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<Partial<ProfileData>>({});
   const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const navigate = useNavigate();
   const [photoPreview, setPhotoPreview] = useState<string>("");
 
   // Fetch Profile
@@ -271,24 +273,6 @@ export default function ProfilePage() {
 
         {/* Right Card - Detail Form */}
         <ComponentCard className="dark:bg-gray-800 dark:border-gray-700 lg:col-span-2">
-          <div className="flex justify-between items-center mb-6">
-            <button
-              onClick={() => setIsEditing(!isEditing)}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-5 py-2 rounded-xl"
-            >
-              {isEditing ? "Cancel" : "Settings"}
-            </button>
-            
-            {isEditing && (
-              <button
-                onClick={handleUpdateProfile}
-                className="bg-green-600 hover:bg-green-700 text-white font-medium px-5 py-2 rounded-xl"
-              >
-                Simpan Perubahan
-              </button>
-            )}
-          </div>
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Nama Pegawai */}
             <div>
@@ -300,20 +284,6 @@ export default function ProfilePage() {
                 name="name"
                 value={formData.name || ""}
                 onChange={handleInputChange}
-                disabled={!isEditing}
-                className="w-full border px-3 py-2 rounded-lg bg-white dark:bg-gray-700 dark:text-white disabled:bg-gray-100 dark:disabled:bg-gray-600"
-              />
-            </div>
-
-            {/* Foto Pegawai */}
-            <div>
-              <label className="block text-sm font-medium mb-1 text-gray-900 dark:text-white">
-                Foto Pegawai
-              </label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handlePhotoChange}
                 disabled={!isEditing}
                 className="w-full border px-3 py-2 rounded-lg bg-white dark:bg-gray-700 dark:text-white disabled:bg-gray-100 dark:disabled:bg-gray-600"
               />

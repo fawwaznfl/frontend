@@ -47,28 +47,37 @@ export default function PegawaiHome() {
 
   // CEK FACE REGISTRATION SAAT PERTAMA LOAD
   useEffect(() => {
-    const faceRegistered = localStorage.getItem("face_registered");
-
-    // Jika belum terdaftar dan belum pernah ditampilkan alert
-    if (faceRegistered === "false") {
-      // Hapus flag agar tidak muncul lagi setelah ini
-      localStorage.removeItem("face_registered");
-
-      // Tampilkan SweetAlert
-      Swal.fire({
-        icon: "warning",
-        title: "Face Recognition Belum Terdaftar",
-        text: "Untuk keamanan absensi, silakan daftarkan wajah Anda terlebih dahulu",
-        confirmButtonText: "Daftar Sekarang",
-        confirmButtonColor: "#4f46e5",
-        allowOutsideClick: false,
-      }).then((result) => {
-        if (result.isConfirmed) {
-          navigate(`/face-recog-regis/${pegawai_id}`);
+    const checkFaceRegistration = async () => {
+      try {
+        const res = await api.get(`/face/check/${pegawai_id}`);
+        
+        if (!res.data.data.registered) {
+          Swal.fire({
+            icon: "warning",
+            title: "Face Recognition Belum Terdaftar",
+            text: "Untuk keamanan absensi, silakan daftarkan wajah Anda terlebih dahulu",
+            confirmButtonText: "Daftar Sekarang",
+            confirmButtonColor: "#4f46e5",
+            allowOutsideClick: false,
+          }).then((result) => {
+            if (result.isConfirmed) {
+              navigate(`/face-recog-regis/${pegawai_id}`);
+            }
+          });
         }
-      });
-    }
+      } catch (err) {
+        Swal.fire({
+          icon: "error",
+          title: "Face Service Tidak Tersedia",
+          text: "Layanan verifikasi wajah sedang bermasalah. Silakan hubungi admin.",
+          confirmButtonColor: "#dc2626",
+        });
+      }
+    };
+
+    checkFaceRegistration();
   }, []);
+
 
   // === GET SHIFT TODAY ===
   const fetchShiftToday = async () => {

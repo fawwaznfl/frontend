@@ -79,7 +79,7 @@ export default function AllMenuPegawai() {
     { label: "Rapat", img: meetingIcon, link: "/rapat-pegawai" }, 
     { label: "Inventory", img: inventoryIcon, link: "/inventory-pegawai" }, 
     { label: "Laporan Kerja", img: laporankerjaIcon, link: "/laporan-kerja-pegawai" }, 
-    { label: "Profile", img: profileIcon, link: "/my-profile-pegawai" }, 
+    { label: "Profile", img: profileIcon, link: "/my-profile-pegawai/:id" }, 
     { label: "Logout", img: logoutIcon, link: "" },
     //{ label: "Face Recognition", img: FaceRecogIcon, link: "" },
      

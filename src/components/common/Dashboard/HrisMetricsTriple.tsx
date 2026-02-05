@@ -6,6 +6,7 @@ export default function HrisMetrics() {
     const [time, setTime] = useState(new Date());
     const [totalTelat, setTotalTelat] = useState(0);
     const [totalPulang, setTotalPulang] = useState(0);
+    const [totalPayrollBulanIni, setTotalPayroll] = useState(0);
     const [bulan, setBulan] = useState("");
 
     useEffect(() => {
@@ -13,10 +14,12 @@ export default function HrisMetrics() {
       .then(res => {
         setTotalTelat(res.data.telat_bulan_ini);
         setTotalPulang(res.data.pulang_bulan_ini);
+        setTotalPayroll(res.data.payroll_bulan_ini);
       })
       .catch(() => {
         setTotalTelat(0);
         setTotalPulang(0);
+        setTotalPayroll(0);
       });
   }, []);
     
@@ -39,6 +42,15 @@ export default function HrisMetrics() {
         month: "long",
         year: "numeric",
       });
+
+      const formatRupiah = (value: number) => {
+        return new Intl.NumberFormat("id-ID", {
+          style: "currency",
+          currency: "IDR",
+          minimumFractionDigits: 0, // biar gak ada .00
+        }).format(value);
+      };
+
 
 
   // USER INTERFACE
@@ -112,7 +124,7 @@ export default function HrisMetrics() {
             </p>
 
             <p className="mt-0.5 md:mt-1 font-bold text-gray-900 dark:text-white text-xl md:text-3xl">
-                14
+                {formatRupiah(totalPayrollBulanIni)}
             </p>
             </div>
         </div>

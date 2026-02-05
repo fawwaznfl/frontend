@@ -72,14 +72,30 @@ export default function PenggajianPegawai() {
     );
   };
 
-  const downloadPdf = (id: number) => {
-    window.location.href = `${API_BASE_URL}/penggajian/${id}/pdf`;
+  const downloadPdf = async (id: number) => {
+    const res = await api.get(`/penggajian/${id}/pdf`, {
+      responseType: "blob",
+    });
+
+    const url = window.URL.createObjectURL(new Blob([res.data]));
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `slip-gaji-${id}.pdf`);
+    document.body.appendChild(link);
+    link.click();
   };
 
 
-  const downloadPdfSlip = (id: number) => {
-    window.open(`${API_BASE_URL}/penggajian/${id}/pdf-slip`, "_blank");
+
+  const downloadPdfSlip = async (id: number) => {
+    const res = await api.get(`/penggajian/${id}/pdf-slip`, {
+      responseType: "blob",
+    });
+
+    const url = window.URL.createObjectURL(new Blob([res.data], { type: "application/pdf" }));
+    window.open(url);
   };
+
 
     
   // USER INTERFACE

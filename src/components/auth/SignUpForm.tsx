@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import { EyeCloseIcon, EyeIcon } from "../../icons";
@@ -6,56 +6,83 @@ import Label from "../form/Label";
 import Input from "../form/input/InputField";
 import api from "../../api/axios";
 
+interface Company {
+  id: number;
+  name: string;
+}
+
 export default function SignUpForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const navigate = useNavigate();
 
+  const [companies, setCompanies] = useState<Company[]>([]);
+
   const [formData, setFormData] = useState({
     name: "",
     username: "",
     email: "",
     no_telp: "",
+    company_id: "",
     password: "",
     password_confirmation: "",
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  // FETCH COMPANIES 
+  useEffect(() => {
+    const fetchCompanies = async () => {
+      try {
+        const res = await api.get("/v1/public/companies");
+        setCompanies(res.data.data);
+      } catch (err) {
+        console.error("Gagal load company", err);
+        Swal.fire({
+          icon: "error",
+          title: "Gagal Memuat Company",
+          text: "Tidak bisa mengambil data company.",
+        });
+      }
+    };
+
+    fetchCompanies();
+  }, []);
+
+  // HANDLE CHANGE
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
   };
 
+  // SUBMIT
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setMessage("");
 
     try {
-      const res = await api.post("/register", formData);
+      await api.post("/register", formData);
 
-      // ✅ SweetAlert sukses
       Swal.fire({
         icon: "success",
         title: "Registrasi Berhasil!",
-        text: "Akun kamu sudah dibuat. Silakan login sekarang.",
-        confirmButtonColor: "#2563eb", // warna biru
+        text: "Akun kamu berhasil dibuat. Silakan login.",
+        confirmButtonColor: "#2563eb",
         confirmButtonText: "Oke",
-      }).then(() => {
-        navigate("/"); // Redirect setelah klik "Oke"
-      });
-
-      console.log("Response:", res.data);
+      }).then(() => navigate("/"));
     } catch (error: any) {
-      console.error("Error:", error);
       const errorMessage =
-        error.response?.data?.message || "Gagal registrasi, coba lagi.";
+        error.response?.data?.message || "Terjadi kesalahan saat registrasi.";
 
-      // ❌ SweetAlert error
       Swal.fire({
         icon: "error",
         title: "Gagal Registrasi",
         text: errorMessage,
-        confirmButtonColor: "#dc2626", // merah
+        confirmButtonColor: "#dc2626",
       });
 
       setMessage(errorMessage);
@@ -64,6 +91,7 @@ export default function SignUpForm() {
     }
   };
 
+  // USER INTERFACE
   return (
     <div className="flex flex-col flex-1 w-full overflow-y-auto lg:w-1/2 no-scrollbar">
       <div className="flex flex-col justify-center flex-1 w-full max-w-md mx-auto">
@@ -87,6 +115,7 @@ export default function SignUpForm() {
                   placeholder="Masukan Nama Kamu"
                   value={formData.name}
                   onChange={handleChange}
+                  required
                 />
               </div>
 
@@ -101,6 +130,7 @@ export default function SignUpForm() {
                   placeholder="Masukan Username"
                   value={formData.username}
                   onChange={handleChange}
+                  required
                 />
               </div>
 
@@ -115,6 +145,7 @@ export default function SignUpForm() {
                   placeholder="Masukan Email Kamu"
                   value={formData.email}
                   onChange={handleChange}
+                  required
                 />
               </div>
 
@@ -129,7 +160,31 @@ export default function SignUpForm() {
                   placeholder="Masukan Nomor Telepon Kamu"
                   value={formData.no_telp}
                   onChange={handleChange}
+                  required
                 />
+              </div>
+
+              {/* Company */}
+              <div>
+                <Label>
+                  Company<span className="text-error-500">*</span>
+                </Label>
+                <select
+                  name="company_id"
+                  value={formData.company_id}
+                  onChange={handleChange}
+                  className="w-full px-3 py-2 border rounded-lg text-sm
+                             focus:border-brand-500 focus:ring-brand-500
+                             dark:bg-gray-800 dark:border-gray-700 dark:text-white"
+                  required
+                >
+                  <option value="">-- Pilih Company --</option>
+                  {companies.map((company) => (
+                    <option key={company.id} value={company.id}>
+                      {company.name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {/* Password */}
@@ -144,6 +199,7 @@ export default function SignUpForm() {
                     name="password"
                     value={formData.password}
                     onChange={handleChange}
+                    required
                   />
                   <span
                     onClick={() => setShowPassword(!showPassword)}
@@ -161,7 +217,7 @@ export default function SignUpForm() {
               {/* Konfirmasi Password */}
               <div>
                 <Label>
-                  Konfirmasi Password{" "}
+                  Konfirmasi Password
                   <span className="text-error-500">*</span>
                 </Label>
                 <div className="relative">
@@ -171,17 +227,8 @@ export default function SignUpForm() {
                     name="password_confirmation"
                     value={formData.password_confirmation}
                     onChange={handleChange}
+                    required
                   />
-                  <span
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute z-30 -translate-y-1/2 cursor-pointer right-4 top-1/2"
-                  >
-                    {showPassword ? (
-                      <EyeIcon className="fill-gray-500 dark:fill-gray-400 size-5" />
-                    ) : (
-                      <EyeCloseIcon className="fill-gray-500 dark:fill-gray-400 size-5" />
-                    )}
-                  </span>
                 </div>
               </div>
 

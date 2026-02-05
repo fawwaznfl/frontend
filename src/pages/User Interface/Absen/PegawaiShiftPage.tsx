@@ -203,6 +203,7 @@ export default function PegawaiShiftPage() {
       setIsVerified(true);
 
       stopCamera();
+      await autoSaveAbsen(data);
     } else {
       setPhotoData(null);
       setIsVerified(false);
@@ -266,6 +267,97 @@ export default function PegawaiShiftPage() {
   const canAbsen =
     absenStatus !== "selesai" &&
     !cutiHariIni;
+
+  const autoSaveAbsen = async (base64Photo: string) => {
+    try {
+      const blob = base64ToBlob(base64Photo);
+      const formData = new FormData();
+
+      formData.append("pegawai_id", pegawai_id);
+      formData.append("shift_id", shiftToday?.shift?.id || "");
+      formData.append("tanggal", tanggalShift);
+      formData.append("lokasi", `${location.lat},${location.lon}`);
+      formData.append("foto", blob, "absen.jpg");
+
+      const res = await api.post("/absensi/auto", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      Swal.fire({
+        icon: "success",
+        title: "Absensi Berhasil 🎉",
+        text: res.data.message,
+        timer: 2000,
+        showConfirmButton: false,
+      });
+
+      if (res.data.message.includes("Absen masuk")) {
+        setAbsenStatus("pulang");
+      } else if (res.data.message.includes("Absen pulang")) {
+        setAbsenStatus("selesai");
+      }
+
+      setTimeout(() => {
+        navigate("/home-pegawai");
+      }, 2000);
+
+    } catch (err: any) {
+      Swal.fire(
+        "Gagal Menyimpan Absensi",
+        err.response?.data?.message || "Server error",
+        "error"
+      );
+    }
+  };
+
+  useEffect(() => {
+    Swal.fire({
+      title: `<div style="font-size:18px;font-weight:600">Perhatian 👀</div>`,
+      html: `
+        <div style="
+          text-align:left;
+          font-size:14px;
+          line-height:1.6;
+          color:#374151;
+        ">
+          <p style="margin-bottom:12px">
+            Sebelum melakukan <b>Absensi</b>, harap perhatikan panduan berikut:
+          </p>
+
+            <div style="display:flex;gap:8px">
+              <span>1</span>
+              <span>Pastikan Mata menghadap ke kamera</b></span>
+            </div>
+
+            <div style="display:flex;gap:8px">
+              <span>2</span>
+              <span>Pastikan Kamera dan wajah sejajar</b></span>
+            </div>
+
+            <div style="display:flex;gap:8px">
+              <span>3</span>
+              <span>Klik tombol <b>Aktifkan Kamera</b></span>
+            </div>
+
+            <div style="display:flex;gap:8px">
+              <span>4</span>
+              <span>Jika masih gagal, ulangi sampai benar posisinya</b></span>
+            </div>
+
+            
+          </div>
+        </div>
+      `,
+      confirmButtonText: "Mengerti",
+      confirmButtonColor: "#4f46e5",
+      allowOutsideClick: false,
+      width: "90%",
+      padding: "1.25rem",
+      backdrop: "rgba(0,0,0,0.6)",
+    });
+  }, []);
+
+
 
 
   // USER INTERFACE
@@ -376,22 +468,16 @@ export default function PegawaiShiftPage() {
 
           {/* INDIKATOR VERIFIKASI */}
           {photoData && isVerified && (
-            <div className="bg-green-100 text-green-700 px-4 py-2 rounded-xl text-sm text-center mt-3">
-             Wajah Terverifikasi! Silakan simpan absen.
+            <div className="bg-yellow-100 text-yellow-700 px-4 py-2 rounded-xl text-center mt-3">
+              Memverifikasi wajah...
             </div>
           )}
 
-          <button
-            onClick={saveAbsen}
-            disabled={!isVerified}
-            className={`w-full mt-3 py-2 rounded-xl text-white ${
-              isVerified
-                ? "bg-blue-700 hover:bg-blue-800"
-                : "bg-gray-400 cursor-not-allowed"
-            }`}
-          >
-            Simpan Absen
-          </button>
+          {isVerified && (
+            <div className="bg-green-100 text-green-700 px-4 py-2 rounded-xl text-center mt-3">
+              Wajah terverifikasi Absensi disimpan otomatis
+            </div>
+          )}
 
           {photoData && (
             <img src={photoData} className="w-full rounded-xl mt-3" alt="Preview" />
