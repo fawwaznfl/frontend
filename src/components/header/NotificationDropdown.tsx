@@ -109,13 +109,13 @@ export default function NotificationDropdown() {
         navigate(`/kontrak/${data.kontrak_id}`);
         break;
       case "request_shift_submitted":
-        navigate(`/shift-request`); // sesuaikan route
+        navigate(`/shift-request-approval`); // sesuaikan route
         break;
       case "cuti_submitted":
         navigate(`/cuti`);
         break;
       case "lembur_submitted":
-        navigate(`/lembur`);
+        navigate(`/data-lembur`);
         break;
       case "reimbursement_submitted":
         navigate(`/reimbursement`);

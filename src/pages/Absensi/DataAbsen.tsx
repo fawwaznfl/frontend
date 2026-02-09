@@ -55,7 +55,7 @@ export default function DataAbsen() {
   const dashboardType = localStorage.getItem("dashboard_type");
   const [companies, setCompanies] = useState<{ id: number; name: string }[]>([]);
   const [selectedCompany, setSelectedCompany] = useState<string>("");
-  const BASE_URL = import.meta.env.VITE_API_URL;
+  const STORAGE_URL = import.meta.env.VITE_STORAGE_URL;
 
   const [pegawaiSearch, setPegawaiSearch] = useState("");
 
@@ -96,7 +96,8 @@ export default function DataAbsen() {
   const CustomInput = ({ value, onClick }: any) => (
     <button
       onClick={onClick}
-      className="border px-3 py-2 rounded-lg w-40 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-200 hover:border-blue-500 transition-all focus:outline-none"
+      className="border px-3 py-2 rounded-lg w-40 bg-white dark:bg-gray-800 text-gray-900 
+      dark:text-gray-200 hover:border-blue-500 transition-all focus:outline-none"
     >
       {value || "Pilih tanggal"}
     </button>
@@ -169,6 +170,19 @@ export default function DataAbsen() {
     navigate(`/edit-absen/${row.id}`);
   };
 
+  const openMap = (lokasi?: string) => {
+    if (!lokasi) return;
+
+    const [lat, lng] = lokasi.split(",");
+
+    if (!lat || !lng) return;
+
+    const url = `https://www.google.com/maps?q=${lat.trim()},${lng.trim()}`;
+
+    window.open(url, "_blank");
+  };
+
+
   const columns: Column<Absen>[] = [
     { header: "No", accessor: "id", cell: (_, index) => index + 1 },
     { header: "Nama Pegawai", accessor: "pegawai", cell: (row) => row.pegawai?.name || "-" },
@@ -183,7 +197,8 @@ export default function DataAbsen() {
         const foto =
           r.foto_masuk.startsWith("http")
             ? r.foto_masuk
-            : `${BASE_URL}/storage/${r.foto_masuk}`;
+            : `${STORAGE_URL}/${r.foto_masuk}`;
+
 
         return (
           <img
@@ -196,7 +211,21 @@ export default function DataAbsen() {
       },
     },
     { header: "Telat", accessor: "telat", cell: (r) => r.telat || "-" },
-    { header: "Lokasi Masuk", cell: (r) => r.lokasi_masuk || "-" },
+    {
+      header: "Lokasi Masuk",
+      cell: (r) => {
+        if (!r.lokasi_masuk) return "-";
+
+        return (
+          <button
+            onClick={() => openMap(r.lokasi_masuk)}
+            className="text-blue-600 underline hover:text-blue-800"
+          >
+            {r.lokasi_masuk}
+          </button>
+        );
+      },
+    },
     { header: "Jam Pulang", accessor: "jam_pulang", cell: (r) => r.jam_pulang || "-" },
     {
       header: "Foto Pulang",
@@ -206,7 +235,8 @@ export default function DataAbsen() {
         const foto =
           r.foto_pulang.startsWith("http")
             ? r.foto_pulang
-            : `${BASE_URL}/storage/${r.foto_pulang}`;
+            : `${STORAGE_URL}/${r.foto_pulang}`;
+
 
         return (
           <img
@@ -250,9 +280,18 @@ export default function DataAbsen() {
     const pegawaiMatch = name.includes(pegawaiSearch.toLowerCase());
 
     const tanggal = new Date(a.tanggal);
+    tanggal.setHours(0, 0, 0, 0);
+
+    const start = startDate ? new Date(startDate) : null;
+    const end = endDate ? new Date(endDate) : null;
+
+    if (start) start.setHours(0, 0, 0, 0);
+    if (end) end.setHours(23, 59, 59, 999);
+
     const dateMatch =
-      (!startDate || tanggal >= startDate) &&
-      (!endDate || tanggal <= endDate);
+      (!start || tanggal >= start) &&
+      (!end || tanggal <= end);
+
 
     const companyMatch =
       !selectedCompany ||

@@ -539,14 +539,10 @@ export default function MyProfilePegawai() {
               "
             >
               <option value="">Pilih Status Nikah</option>
-              <option value="TK/0">TK/0</option>
-              <option value="TK/1">TK/1</option>
-              <option value="TK/2">TK/2</option>
-              <option value="TK/3">TK/3</option>
-              <option value="K0">K0</option>
-              <option value="K1">K1</option>
-              <option value="K2">K2</option>
-              <option value="K3">K3</option>
+              <option value="menikah">Menikah</option>
+              <option value="belum_menikah">Belum Menikah</option>
+              <option value="janda">Janda</option>
+              <option value="duda">Duda</option>
             </select>
           </div>
 

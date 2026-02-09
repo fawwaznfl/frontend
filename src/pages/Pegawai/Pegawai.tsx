@@ -168,6 +168,29 @@ export default function Pegawais() {
     document.body.removeChild(link);
   };
 
+  const STORAGE_URL = import.meta.env.VITE_STORAGE_URL;
+
+  const buildImageUrl = (path?: string | null) => {
+    if (!path) return "/default-avatar.jpg";
+
+    if (path.startsWith("http")) {
+      console.log("FULL URL:", path);
+      return path;
+    }
+
+    const base = STORAGE_URL?.replace(/\/$/, "");
+    const cleanPath = path.replace(/^\//, "");
+
+    const fullUrl = `${base}/${cleanPath}`;
+
+    console.log("BUILT URL:", fullUrl);
+
+    return fullUrl;
+  };
+
+
+
+
   const columns: Column<Pegawai>[] = [
     { header: "No", accessor: "id", cell: (_, index) => index + 1, width: "60px" },
     { header: "Nama", accessor: "name" },
@@ -178,9 +201,12 @@ export default function Pegawais() {
         <div className="flex flex-col items-center justify-center p-2">
           <div className="w-24 h-24 rounded-full overflow-hidden border">
             <img
-            src={row.foto_karyawan ?? "/default-user.png"}
-            className="w-full h-full object-cover"
-          />
+              src={buildImageUrl(row.foto_karyawan)}
+                onError={(e) => {
+                  e.currentTarget.src = "/default-avatar.jpg";
+                }}
+                className="w-full h-full object-cover"
+              />
           </div>
         </div>
       ),

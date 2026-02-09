@@ -39,6 +39,17 @@ export default function PegawaiHome() {
 
   const API_URL = import.meta.env.VITE_API_URL;
   const STORAGE_URL = import.meta.env.VITE_STORAGE_URL;
+  const buildImageUrl = (path?: string | null) => {
+    if (!path) return "";
+
+    if (path.startsWith("http")) return path;
+
+    const base = STORAGE_URL?.replace(/\/$/, "");
+    const cleanPath = path.replace(/^\//, "");
+
+    return `${base}/${cleanPath}`;
+  };
+
 
   const [shiftTime, setShiftTime] = useState("Loading...");
   const [openSidebar, setOpenSidebar] = useState(false);
@@ -181,9 +192,12 @@ export default function PegawaiHome() {
             <div className="w-16 h-16 rounded-full overflow-hidden bg-white/20 flex items-center justify-center shadow-md">
               {user.foto_karyawan ? (
                 <img
-                    src={user.foto_karyawan}
-                    className="w-full h-full object-cover"
-                  />
+                  src={buildImageUrl(user.foto_karyawan)}
+                  onError={(e) => {
+                    e.currentTarget.src = "/default-avatar.jpg";
+                  }}
+                  className="w-full h-full object-cover"
+                />
               ) : (
                 <User className="w-8 h-8 opacity-90" />
               )}
@@ -311,7 +325,7 @@ export default function PegawaiHome() {
             >
               {/* GAMBAR */}
               <img
-                src={`${STORAGE_URL}/${b.gambar}`}
+                src={buildImageUrl(b.gambar)}
                 alt={b.judul}
                 className="w-full h-full object-cover group-hover:scale-105 transition"
               />

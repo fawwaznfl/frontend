@@ -139,6 +139,7 @@ import FaceRecognitionRegisterPegawai from "./pages/User Interface/Face Recognit
 import ProfilePage from "./pages/ProfilePage";
 import ResetPasswordForm from "./components/auth/ResetPasswordForm";
 import ResetPassword from "./pages/AuthPages/ResetPassword";
+import EditAbsen from "./pages/Absensi/EditAbsen";
 
 export default function App() {
   return (
@@ -595,6 +596,7 @@ export default function App() {
           <Route path="/add-dokumen-pegawai" element={<AddDokumen />} />
           <Route path="/edit-dokumen-pegawai/:id" element={<EditDokumen/>} />
           <Route path="/data-absen" element={<DataAbsen />} />
+          <Route path="/edit-absen/:id" element={<EditAbsen />} />
           <Route path="/kasbon" element={<Kasbon />} />
           <Route path="/add-kasbon" element={<AddKasbon />} />
           <Route path="/edit-kasbon/:id" element={<EditKasbon/>} />

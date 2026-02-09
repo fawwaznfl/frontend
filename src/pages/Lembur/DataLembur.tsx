@@ -124,13 +124,40 @@ export default function DataLembur() {
     }
   };
 
+  const openMap = (lokasi?: string | null) => {
+    if (!lokasi) return;
+
+    const [lat, lng] = lokasi.split(",");
+
+    if (!lat || !lng) return;
+
+    const url = `https://www.google.com/maps?q=${lat.trim()},${lng.trim()}`;
+
+    window.open(url, "_blank");
+  };
+
+
   const columns: Column<Lembur>[] = [
     { header: "No", accessor: undefined, cell: (_, i) => i + 1 },
     { header: "Nama Pegawai", accessor: "pegawai", cell: (r) => r.pegawai?.name || "-" },
     { header: "Tanggal", accessor: "tanggal_lembur" },
 
     { header: "Jam Mulai", accessor: "jam_mulai", cell: (r) => r.jam_mulai || "-" },
-    { header: "Lokasi Masuk", accessor: "lokasi_masuk", cell: (r) => r.lokasi_masuk || "-" },
+    {
+      header: "Lokasi Masuk",
+      cell: (r) => {
+        if (!r.lokasi_masuk) return "-";
+
+        return (
+          <button
+            onClick={() => openMap(r.lokasi_masuk)}
+            className="text-blue-600 underline hover:text-blue-800"
+          >
+            {r.lokasi_masuk}
+          </button>
+        );
+      },
+    },
     {
       header: "Foto Masuk",
       cell: (r) =>
@@ -144,7 +171,21 @@ export default function DataLembur() {
         ),
     },
     { header: "Jam Selesai", accessor: "jam_selesai", cell: (r) => r.jam_selesai || "-" },
-    { header: "Lokasi Pulang", accessor: "lokasi_pulang", cell: (r) => r.lokasi_pulang || "-" },
+    {
+      header: "Lokasi Pulang",
+      cell: (r) => {
+        if (!r.lokasi_pulang) return "-";
+
+        return (
+          <button
+            onClick={() => openMap(r.lokasi_pulang)}
+            className="text-blue-600 underline hover:text-blue-800"
+          >
+            {r.lokasi_pulang}
+          </button>
+        );
+      },
+    },
     {
       header: "Foto Pulang",
       cell: (r) =>
